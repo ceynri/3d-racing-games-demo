@@ -1,25 +1,15 @@
-﻿model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwSwapBuffers
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwSetFramebufferSizeCallback
-model_loading.obj : error LNK2001: 无法解析的外部符号 _aiGetMaterialTextureCount
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwGetTime
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwGetKey
-model_loading.obj : error LNK2001: 无法解析的外部符号 _stbi_load
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwTerminate
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwPollEvents
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwInit
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwSetWindowShouldClose
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwSetScrollCallback
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwCreateWindow
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwWindowHint
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwSetInputMode
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwMakeContextCurrent
-model_loading.obj : error LNK2001: 无法解析的外部符号 _stbi_image_free
-model_loading.obj : error LNK2001: 无法解析的外部符号 "public: char const * __thiscall Assimp::Importer::GetErrorString(void)const " (?GetErrorString@Importer@Assimp@@QBEPBDXZ)
-model_loading.obj : error LNK2001: 无法解析的外部符号 "public: struct aiScene const * __thiscall Assimp::Importer::ReadFile(char const *,unsigned int)" (?ReadFile@Importer@Assimp@@QAEPBUaiScene@@PBDI@Z)
-model_loading.obj : error LNK2001: 无法解析的外部符号 "public: __thiscall Assimp::Importer::~Importer(void)" (??1Importer@Assimp@@QAE@XZ)
-model_loading.obj : error LNK2001: 无法解析的外部符号 "public: __thiscall Assimp::Importer::Importer(void)" (??0Importer@Assimp@@QAE@XZ)
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwGetProcAddress
-model_loading.obj : error LNK2001: 无法解析的外部符号 _aiGetMaterialTexture
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwSetCursorPosCallback
-model_loading.obj : error LNK2001: 无法解析的外部符号 _glfwWindowShouldClose
-Z:\作业\计算机图形学\大作业\2017192023_BigProject\Release\2017192023_BigProject.exe : fatal error LNK1120: 24 个无法解析的外部命令
+﻿  glad.c
+  model_loading.cpp
+model_loading.cpp(94): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+model_loading.cpp(165): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+model_loading.cpp(166): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+model_loading.cpp(170): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+model_loading.cpp(171): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+model_loading.cpp(173): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+model_loading.cpp(174): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+model_loading.cpp(183): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+  stb_image.cpp
+model_loading.obj : error LNK2001: 无法解析的外部符号 __imp__glBindTexture@8
+model_loading.obj : error LNK2001: 无法解析的外部符号 __imp__glGenTextures@8
+model_loading.obj : error LNK2001: 无法解析的外部符号 __imp__glDrawElements@16
+Z:\作业\计算机图形学\大作业\2017192023_BigProject\Release\2017192023_BigProject.exe : fatal error LNK1120: 3 个无法解析的外部命令

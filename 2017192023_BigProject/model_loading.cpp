@@ -1,13 +1,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <learnopengl/camera.h>
 #include <learnopengl/filesystem.h>
 #include <learnopengl/shader_m.h>
-#include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 
 #include <iostream>
@@ -15,42 +16,105 @@
 #pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "assimp.lib")
 
+// 一些声明
+void init();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow* window);
 
-// settings
+// 窗口尺寸
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+const vec4 BG_COLOR(0.1f, 0.1f, 0.1f, 1.0f);
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 1.0f, 3.0f));
+
+// 将鼠标设置在屏幕中心
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-// timing
+// timing 用来平衡不同电脑渲染水平所产生的速度变化
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+// --------
+// main 函数
 int main()
 {
-    // glfw: initialize and configure
-    // ------------------------------
+    // 一些初始化
+    init();
+
+    // 构建和编译着色器
+    Shader ourShader("shader/model_loading.vs", "shader/model_loading.fs");
+
+    // 加载模型
+    // Model ourModel(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
+    // Model ourModel(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
+    Model ourModel(FileSystem::getPath("asset/model/obj/Residential Buildings/Residential Buildings 001.obj"));
+    // Model ourModel(FileSystem::getPath("asset/model/obj/Residential Buildings/3d-Hologramm-(Wavefront OBJ).obj"));
+
+    // -------
+    // 循环渲染
+    while (!glfwWindowShouldClose(window)) {
+        // 每帧的时间逻辑
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        // 监听按键
+        processInput(window);
+
+        // 渲染
+        glClearColor(BG_COLOR);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 设置uniform变量之前先应用shader
+        ourShader.use();
+
+        // 视图/投影转换
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        ourShader.setMat4("projection", projection);
+        ourShader.setMat4("view", view);
+
+        // 渲染加载的模型
+        glm::mat4 model = glm::mat4(1.0f);
+        // model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // 将其下移以位于scene的中心
+        model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f)); // 缩小
+        ourShader.setMat4("model", model);
+        ourModel.Draw(ourShader);
+
+        // ----------------------------------------
+        // 交换缓冲区和调查IO事件（按下的按键,鼠标移动等）
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    // 关闭glfw
+    glfwTerminate();
+    return 0;
+}
+
+// -----
+// 初始化
+void init() {
+    // ---------
+    // 初始化配置
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-
-    // glfw window creation
-    // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {
+    // -------
+    // 创建窗口
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, u8"2017191023_陈扬锐_期末大作业", NULL, NULL);
+    if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
+        system("pause");
         return -1;
     }
     glfwMakeContextCurrent(window);
@@ -58,84 +122,28 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    // tell GLFW to capture our mouse
+    // 令GLFW捕捉用户的鼠标
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    // --------------------
+    // 加载所有OpenGL函数指针
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
+        system("pause");
         return -1;
     }
 
-    // configure global opengl state
-    // -----------------------------
+    // 配置全局openGL状态
     glEnable(GL_DEPTH_TEST);
 
-    // build and compile shaders
-    // -------------------------
-    Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
-
-    // load models
-    // -----------
-    //Model ourModel(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
-	Model ourModel(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
-	
-    // draw in wireframe
+    // 画线框图
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    // render loop
-    // -----------
-    while (!glfwWindowShouldClose(window))
-    {
-        // per-frame time logic
-        // --------------------
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-        // input
-        // -----
-        processInput(window);
-
-        // render
-        // ------
-        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // don't forget to enable shader before setting uniforms
-        ourShader.use();
-
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
-
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));	// it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
-
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
-    glfwTerminate();
-    return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+// -------
+// 监听按键
+void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -149,29 +157,18 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
 }
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
-}
-
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
+// -------
+// 鼠标移动
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    if (firstMouse)
-    {
+    if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    float yoffset = lastY - ypos; // 坐标翻转以对应坐标系
 
     lastX = xpos;
     lastY = ypos;
@@ -179,9 +176,18 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
+// -------
+// 鼠标滚轮
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
+}
+
+// ----------
+// 改变窗口大小
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    // 确保窗口匹配的新窗口尺寸
+    // 宽度和高度将明显大于指定在retina屏上显示
+    glViewport(0, 0, width, height);
 }
