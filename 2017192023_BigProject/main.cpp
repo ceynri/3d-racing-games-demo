@@ -14,6 +14,7 @@
 typedef Angel::vec4 point4;
 typedef Angel::vec4 color4;
 
+
 std::vector<My_Mesh*> my_meshs;
 Mesh_Painter* mp_;
 

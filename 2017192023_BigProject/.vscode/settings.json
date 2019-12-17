@@ -66,5 +66,6 @@
     "xtree": "cpp",
     "xutility": "cpp"
   },
-  "files.autoGuessEncoding": true
+  "files.autoGuessEncoding": true,
+  "files.encoding": "gb2312"
 }

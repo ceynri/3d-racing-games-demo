@@ -5,10 +5,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <my/filesystem.h>
-#include <my/shader_m.h>
-#include <my/camera.h>
-#include <my/model.h>
+#include <learnopengl/filesystem.h>
+#include <learnopengl/shader_m.h>
+#include <learnopengl/camera.h>
+#include <learnopengl/model.h>
 
 #include <iostream>
 
@@ -43,9 +43,6 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
-#endif
 
     // glfw window creation
     // --------------------
@@ -82,9 +79,9 @@ int main()
 
     // load models
     // -----------
-    Model ourModel(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
-
-    
+    //Model ourModel(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
+	Model ourModel(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
+	
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
