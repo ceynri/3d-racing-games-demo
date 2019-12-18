@@ -122,16 +122,23 @@ private:
                 vertex.TexCoords = glm::vec2(0.0f, 0.0f);
             }
             // tangent
-            vector.x = mesh->mTangents[i].x;
-            vector.y = mesh->mTangents[i].y;
-            vector.z = mesh->mTangents[i].z;
-            vertex.Tangent = vector;
+            if (mesh->mTangents) {
+                vector.x = mesh->mTangents[i].x;
+                vector.y = mesh->mTangents[i].y;
+                vector.z = mesh->mTangents[i].z;
+                vertex.Tangent = vector;
+            } else {
+                vertex.Tangent = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
             // bitangent
-            vector.x = mesh->mBitangents[i].x;
-            vector.y = mesh->mBitangents[i].y;
-            vector.z = mesh->mBitangents[i].z;
-            vertex.Bitangent = vector;
-
+            if (mesh->mBitangents) {
+                vector.x = mesh->mBitangents[i].x;
+                vector.y = mesh->mBitangents[i].y;
+                vector.z = mesh->mBitangents[i].z;
+                vertex.Bitangent = vector;
+            } else {
+                vertex.Bitangent = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
             vertices.push_back(vertex);
         }
 
@@ -169,7 +176,6 @@ private:
         return Mesh(vertices, indices, textures);
     }
 
-
     // 加载材质纹理
     vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, string typeName)
     {
@@ -193,7 +199,7 @@ private:
                 texture.type = typeName;
                 texture.path = str.C_Str();
                 textures.push_back(texture);
-                textures_loaded.push_back(texture);  // 添加到已加载的纹理中
+                textures_loaded.push_back(texture); // 添加到已加载的纹理中
             }
         }
         return textures;

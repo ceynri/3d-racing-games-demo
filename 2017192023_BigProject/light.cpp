@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <learnopengl/filesystem.h>
 #include <learnopengl/shader_m.h>
 #include <learnopengl/camera.h>
 
@@ -75,8 +76,8 @@ int main()
 
     // build and compile shaders
     // -------------------------
-    Shader lightingShader("5.1.light_casters.vs", "5.1.light_casters.fs");
-    Shader lampShader("5.1.lamp.vs", "5.1.lamp.fs");
+    Shader lightingShader("shader/light_casters.vs", "shader/light_casters.fs");
+    Shader lampShader("shader/lamp.vs", "shader/lamp.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -165,8 +166,8 @@ int main()
 
     // load textures (we now use a utility function to keep the code more organized)
     // -----------------------------------------------------------------------------
-    unsigned int diffuseMap = loadTexture(FileSystem::getPath("resources/textures/container2.png").c_str());
-    unsigned int specularMap = loadTexture(FileSystem::getPath("resources/textures/container2_specular.png").c_str());
+    unsigned int diffuseMap = loadTexture(FileSystem::getPath("asset/texture/container2.png").c_str());
+    unsigned int specularMap = loadTexture(FileSystem::getPath("asset/texture/container2_specular.png").c_str());
 
     // shader configuration
     // --------------------

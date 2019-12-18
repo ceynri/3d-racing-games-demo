@@ -1,6 +1,6 @@
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
+#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -8,8 +8,8 @@
 
 #include <learnopengl/camera.h>
 #include <learnopengl/filesystem.h>
-#include <learnopengl/shader_m.h>
 #include <learnopengl/model.h>
+#include <learnopengl/shader_m.h>
 
 #include <iostream>
 
@@ -17,7 +17,11 @@
 #pragma comment(lib, "assimp.lib")
 
 // 一些声明
-void init();
+GLFWwindow* windowInit();
+bool init();
+void setDeltaTime();
+void renderModel(Model model, Shader shader);
+void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -26,7 +30,6 @@ void processInput(GLFWwindow* window);
 // 窗口尺寸
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-const vec4 BG_COLOR(0.1f, 0.1f, 0.1f, 1.0f);
 
 // camera
 Camera camera(glm::vec3(0.0f, 1.0f, 3.0f));
@@ -44,52 +47,47 @@ float lastFrame = 0.0f;
 // main 函数
 int main()
 {
+    GLFWwindow* window = windowInit();
+    bool isInit = init();
     // 一些初始化
-    init();
+    if (window == NULL || !isInit) {
+        return -1;
+    }
 
     // 构建和编译着色器
-    Shader ourShader("shader/model_loading.vs", "shader/model_loading.fs");
+    Shader shader("shader/model_loading.vs", "shader/model_loading.fs");
+
+    // ----------------------------------
+    // TODO 加载多个模型，重构提取模型加载代码
+    // ----------------------------------
 
     // 加载模型
-    // Model ourModel(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
-    // Model ourModel(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
-    Model ourModel(FileSystem::getPath("asset/model/obj/Residential Buildings/Residential Buildings 001.obj"));
-    // Model ourModel(FileSystem::getPath("asset/model/obj/Residential Buildings/3d-Hologramm-(Wavefront OBJ).obj"));
+    Model model(FileSystem::getPath("asset/model/obj/simple-car/Car.obj"));
+    // Model model(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
+    // Model model(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
+    // Model model(FileSystem::getPath("asset/model/obj/Residential Buildings/Residential Buildings 001.obj"));
+    // Model model(FileSystem::getPath("asset/model/obj/Residential Buildings/3d-Hologramm-(Wavefront OBJ).obj"));
 
     // -------
     // 循环渲染
     while (!glfwWindowShouldClose(window)) {
-        // 每帧的时间逻辑
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+        // 计算一帧的时间长度以便于使帧绘制速度均匀
+        setDeltaTime();
 
         // 监听按键
         processInput(window);
 
-        // 渲染
-        glClearColor(BG_COLOR);
+        // 渲染背景
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 设置uniform变量之前先应用shader
-        ourShader.use();
+        // 使用shader渲染model
+        renderModel(model, shader);
 
-        // 视图/投影转换
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
-
-        // 渲染加载的模型
-        glm::mat4 model = glm::mat4(1.0f);
-        // model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // 将其下移以位于scene的中心
-        model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f)); // 缩小
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
-
-        // ----------------------------------------
         // 交换缓冲区和调查IO事件（按下的按键,鼠标移动等）
         glfwSwapBuffers(window);
+
+        // 轮询事件
         glfwPollEvents();
     }
 
@@ -100,7 +98,8 @@ int main()
 
 // -----
 // 初始化
-void init() {
+GLFWwindow* windowInit()
+{
     // ---------
     // 初始化配置
     glfwInit();
@@ -115,7 +114,7 @@ void init() {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         system("pause");
-        return -1;
+        return NULL;
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -125,12 +124,17 @@ void init() {
     // 令GLFW捕捉用户的鼠标
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    // --------------------
+    return window;
+}
+
+bool init()
+{
+    // ------------------
     // 加载所有OpenGL函数指针
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         system("pause");
-        return -1;
+        return false;
     }
 
     // 配置全局openGL状态
@@ -139,6 +143,42 @@ void init() {
     // 画线框图
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    return true;
+}
+
+void renderModel(Model model, Shader shader)
+{
+    // 设置uniform变量之前先应用shader
+    shader.use();
+
+    // 视图转换
+    glm::mat4 viewMatrix = camera.GetViewMatrix();
+    // 模型转换
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    // modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -1.75f, 0.0f));
+    modelMatrix = glm::scale(modelMatrix, glm::vec3(0.2f, 0.2f, 0.2f));
+    // 投影转换
+    glm::mat4 projMatrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+    // 应用变换矩阵
+    setTransMatrix(shader, viewMatrix, modelMatrix, projMatrix);
+
+    model.Draw(shader);
+}
+
+void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix) {
+    shader.setMat4("view", viewMatrix);
+    shader.setMat4("model", modelMatrix);
+    shader.setMat4("projection", projMatrix);
+}
+
+// 计算一帧的时间长度
+void setDeltaTime()
+{
+
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
 }
 
 // -------

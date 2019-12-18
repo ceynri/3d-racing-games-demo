@@ -38,7 +38,7 @@ struct Texture {
     string path;
 };
 
-// m
+// mesh
 class Mesh {
 public:
     /*  网格数据  */
@@ -123,6 +123,13 @@ private:
         // vertex 位置
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+        // 第一个参数指定从索引0开始取数据，与顶点着色器中layout(location=0)对应。
+        // 第二个参数指定顶点属性大小。
+        // 第三个参数指定数据类型。
+        // 第四个参数定义是否希望数据被标准化（归一化），只表示方向不表示大小。
+        // 第五个参数是步长（Stride），指定在连续的顶点属性之间的间隔。上面传0和传4效果相同，如果传1取值方式为0123、1234、2345……
+        // 第六个参数表示我们的位置数据在缓冲区起始位置的偏移量。
+
         // vertex 法线
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));

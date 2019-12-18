@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="glad.c" />
-    <ClCompile Include="model_loading.cpp" />
+    <ClCompile Include="light.cpp" />
     <ClCompile Include="stb_image.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
