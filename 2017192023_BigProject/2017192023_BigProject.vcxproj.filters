@@ -21,7 +21,7 @@
     <ClCompile Include="glad.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="light.cpp">
+    <ClCompile Include="model_loading.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

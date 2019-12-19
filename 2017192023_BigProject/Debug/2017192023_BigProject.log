@@ -1,11 +1,11 @@
-﻿  light.cpp
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(185): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(311): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(312): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(316): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(317): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(319): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(320): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\light.cpp(329): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+﻿  model_loading.cpp
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(199): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(229): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(230): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(234): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(235): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(237): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(238): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+z:\作业\计算机图形学\大作业\2017192023_bigproject\2017192023_bigproject\model_loading.cpp(247): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
   2017192023_BigProject.vcxproj -> Z:\作业\计算机图形学\大作业\2017192023_BigProject\Debug\2017192023_BigProject.exe
   2017192023_BigProject.vcxproj -> Z:\作业\计算机图形学\大作业\2017192023_BigProject\Debug\2017192023_BigProject.pdb (Partial PDB)

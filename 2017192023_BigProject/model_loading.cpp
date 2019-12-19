@@ -20,6 +20,7 @@
 GLFWwindow* windowInit();
 bool init();
 void setDeltaTime();
+void renderLight(Shader shader);
 void renderModel(Model model, Shader shader);
 void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -55,15 +56,15 @@ int main()
     }
 
     // 构建和编译着色器
-    Shader shader("shader/model_loading.vs", "shader/model_loading.fs");
+    Shader shader("shader/light.vs", "shader/light.fs");
 
     // ----------------------------------
     // TODO 加载多个模型，重构提取模型加载代码
     // ----------------------------------
 
     // 加载模型
-    Model model(FileSystem::getPath("asset/model/obj/simple-car/Car.obj"));
-    // Model model(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
+    // Model model(FileSystem::getPath("asset/model/obj/simple-car/Car.obj"));
+    Model model(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
     // Model model(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
     // Model model(FileSystem::getPath("asset/model/obj/Residential Buildings/Residential Buildings 001.obj"));
     // Model model(FileSystem::getPath("asset/model/obj/Residential Buildings/3d-Hologramm-(Wavefront OBJ).obj"));
@@ -81,6 +82,11 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // 设置uniform变量之前先应用shader
+        shader.use();
+
+        // 设置光照相关属性
+        renderLight(shader);
         // 使用shader渲染model
         renderModel(model, shader);
 
@@ -146,11 +152,24 @@ bool init()
     return true;
 }
 
+// 设置光照相关属性
+void renderLight(Shader shader)
+{
+    // 方向和位置
+    shader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
+    shader.setVec3("viewPos", camera.Position);
+
+    // 光照属性
+    shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+    shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+    shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+    // 材质属性
+    shader.setFloat("shininess", 32.0f);
+}
+
 void renderModel(Model model, Shader shader)
 {
-    // 设置uniform变量之前先应用shader
-    shader.use();
-
     // 视图转换
     glm::mat4 viewMatrix = camera.GetViewMatrix();
     // 模型转换
@@ -166,7 +185,8 @@ void renderModel(Model model, Shader shader)
     model.Draw(shader);
 }
 
-void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix) {
+void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix)
+{
     shader.setMat4("view", viewMatrix);
     shader.setMat4("model", modelMatrix);
     shader.setMat4("projection", projMatrix);
@@ -185,9 +205,11 @@ void setDeltaTime()
 // 监听按键
 void processInput(GLFWwindow* window)
 {
+    // esc退出
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // WSAD 前后左右 Space上 左Ctrl下
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -196,6 +218,10 @@ void processInput(GLFWwindow* window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera.ProcessKeyboard(UP, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        camera.ProcessKeyboard(DOWN, deltaTime);
 }
 // -------
 // 鼠标移动
