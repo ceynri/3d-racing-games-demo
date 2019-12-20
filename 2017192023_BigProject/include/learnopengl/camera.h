@@ -20,7 +20,7 @@ enum Camera_Movement {
 // 默认值
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
-const float SPEED = 2.5f;
+const float SPEED = 5.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
@@ -97,9 +97,9 @@ public:
         if (direction == RIGHT)
             Position += Right * velocity;
         if (direction == UP)
-            Position += Up * velocity;
+            Position += WorldUp * velocity;
         if (direction == DOWN)
-            Position -= Up * velocity;
+            Position -= WorldUp * velocity;
     }
 
     // 接受鼠标移动

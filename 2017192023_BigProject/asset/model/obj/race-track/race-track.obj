@@ -1,0 +1,26 @@
+# obj对应的材质文件
+mtllib race-track.mtl
+# 组名称
+g race-track
+# o 对象名称(Object name)
+o race-track-obj
+# 顶点
+v -100.0 0.0 -100.0
+v -100.0 0.0 100.0
+v 100.0 0.0 100.0
+v 100.0 0.0 -100.0
+# 纹理坐标
+vt 0.0 1.0
+vt 1.0 1.0
+vt 1.0 0.0
+vt 0.0 0.0
+# 顶点法线
+vn 0.0 1.0 0.0
+# 当前图元所用材质
+usemtl race-track
+# s Smooth shading across polygons is enabled by smoothing groups.
+# Smooth shading can be disabled as well.
+s off
+# v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3(索引起始于1)    
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 4/4/1 3/3/1

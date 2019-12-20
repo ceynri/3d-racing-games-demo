@@ -1,15 +1,16 @@
-﻿  glad.c
-  model_loading.cpp
-model_loading.cpp(94): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-model_loading.cpp(165): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-model_loading.cpp(166): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-model_loading.cpp(170): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-model_loading.cpp(171): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-model_loading.cpp(173): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-model_loading.cpp(174): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-model_loading.cpp(183): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-  stb_image.cpp
-model_loading.obj : error LNK2001: 无法解析的外部符号 __imp__glBindTexture@8
-model_loading.obj : error LNK2001: 无法解析的外部符号 __imp__glGenTextures@8
-model_loading.obj : error LNK2001: 无法解析的外部符号 __imp__glDrawElements@16
-Z:\作业\计算机图形学\大作业\2017192023_BigProject\Release\2017192023_BigProject.exe : fatal error LNK1120: 3 个无法解析的外部命令
+﻿  main.cpp
+main.cpp(225): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+main.cpp(268): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+main.cpp(269): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+main.cpp(273): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+main.cpp(274): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+main.cpp(276): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+main.cpp(277): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+main.cpp(286): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+  正在生成代码
+  818 of 996 functions (82.1%) were compiled, the rest were copied from previous compilation.
+    2 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  2017192023_BigProject.vcxproj -> Z:\作业\计算机图形学\大作业\2017192023_BigProject\Release\2017192023_BigProject.exe
+  2017192023_BigProject.vcxproj -> Z:\作业\计算机图形学\大作业\2017192023_BigProject\Release\2017192023_BigProject.pdb (Full PDB)
