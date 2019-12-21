@@ -18,27 +18,45 @@
 #pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "assimp.lib")
 
-// 一些声明
+// -------------------------------
+// 函数声明
+// -------------------------------
+
 GLFWwindow* windowInit();
 bool init();
 void setDeltaTime();
+
 void renderLight(Shader shader);
 void renderCar(Model model, Shader shader);
 void renderRaceTrack(Model model, Shader shader);
+void renderSkyBox(Shader shader);
+
 void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix);
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
-// 窗口尺寸
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+unsigned int loadCubemap(vector<std::string> faces);
 
+// -------------------------------
+// 全局变量
+// -------------------------------
+
+// 窗口尺寸
+const unsigned int SCR_WIDTH = 1280;
+const unsigned int SCR_HEIGHT = 720;
+
+// 汽车的一些属性
 Car car(glm::vec3(0.0f, 0.0f, 0.0f));
 
-// camera
+// 相机
 Camera camera(glm::vec3(0.0f, 50.0f, 0.0f));
+
+// 天空盒
+unsigned int skyboxVAO, skyboxVBO;
+unsigned int cubemapTexture;
 
 // 将鼠标设置在屏幕中心
 float lastX = SCR_WIDTH / 2.0f;
@@ -49,8 +67,71 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// --------
-// main 函数
+// 天空盒数据
+const float skyboxVertices[] = {
+    // positions
+    -1.0f, 1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+    1.0f, -1.0f, -1.0f,
+    1.0f, -1.0f, -1.0f,
+    1.0f, 1.0f, -1.0f,
+    -1.0f, 1.0f, -1.0f,
+
+    -1.0f, -1.0f, 1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, 1.0f, -1.0f,
+    -1.0f, 1.0f, -1.0f,
+    -1.0f, 1.0f, 1.0f,
+    -1.0f, -1.0f, 1.0f,
+
+    1.0f, -1.0f, -1.0f,
+    1.0f, -1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, -1.0f,
+    1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f, 1.0f,
+    -1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f,
+    1.0f, -1.0f, 1.0f,
+    -1.0f, -1.0f, 1.0f,
+
+    -1.0f, 1.0f, -1.0f,
+    1.0f, 1.0f, -1.0f,
+    1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f,
+    -1.0f, 1.0f, 1.0f,
+    -1.0f, 1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f, 1.0f,
+    1.0f, -1.0f, -1.0f,
+    1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f, 1.0f,
+    1.0f, -1.0f, 1.0f
+};
+
+const vector<std::string> faces{
+    FileSystem::getPath("asset/texture/skybox/right.tga"),
+    FileSystem::getPath("asset/texture/skybox/left.tga"),
+    FileSystem::getPath("asset/texture/skybox/top.tga"),
+    FileSystem::getPath("asset/texture/skybox/bottom.tga"),
+    FileSystem::getPath("asset/texture/skybox/front.tga"),
+    FileSystem::getPath("asset/texture/skybox/back.tga")
+    // FileSystem::getPath("asset/texture/skybox2/right.jpg"),
+    // FileSystem::getPath("asset/texture/skybox2/left.jpg"),
+    // FileSystem::getPath("asset/texture/skybox2/top.jpg"),
+    // FileSystem::getPath("asset/texture/skybox2/bottom.jpg"),
+    // FileSystem::getPath("asset/texture/skybox2/front.jpg"),
+    // FileSystem::getPath("asset/texture/skybox2/back.jpg")
+};
+
+// ------------------------------------------
+// main函数
+// ------------------------------------------
+
 int main()
 {
     GLFWwindow* window = windowInit();
@@ -63,19 +144,39 @@ int main()
     // 构建和编译着色器
     Shader shader("shader/light.vs", "shader/light.fs");
     Shader simpleShader("shader/model_loading.vs", "shader/model_loading.fs");
+    Shader skyboxShader("shader/skybox.vs", "shader/skybox.fs");
 
     // 加载模型
     // Model model(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
     // Model model(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
-    
     // Model model(FileSystem::getPath("asset/model/obj/simple-car/Car.obj"));
     // Model model(FileSystem::getPath("asset/model/obj/LowPolyCar/Car.obj"));
-    
-    // Model model(FileSystem::getPath("asset/model/obj/Residential Buildings/Residential Buildings 001.obj"));
-    
+
+    // 汽车模型
     Model model(FileSystem::getPath("asset/model/obj/Lamborghini/Lamborghini.obj"));
 
+    // 赛道模型
     Model raceTrack(FileSystem::getPath("asset/model/obj/race-track/race-track.obj"));
+
+    // -----------
+    // 天空盒的配置
+
+    // skybox VAO
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    cubemapTexture = loadCubemap(faces);
+
+    skyboxShader.use();
+    skyboxShader.setInt("skybox", 0);
+
+    // 结束天空盒配置
+    // ------------
 
     // -------
     // 循环渲染
@@ -98,8 +199,19 @@ int main()
         // 使用shader渲染car
         renderCar(model, shader);
 
+        // 渲染赛道
         simpleShader.use();
         renderRaceTrack(raceTrack, simpleShader);
+
+        // --------------
+        // 最后再渲染天空盒
+
+        // 改变深度测试，优化由深度问题导致的重绘从而出现性能问题
+        glDepthFunc(GL_LEQUAL);
+        skyboxShader.use();
+        renderSkyBox(skyboxShader);
+        // 复原深度测试
+        glDepthFunc(GL_LESS);
 
         // 交换缓冲区和调查IO事件（按下的按键,鼠标移动等）
         glfwSwapBuffers(window);
@@ -112,6 +224,10 @@ int main()
     glfwTerminate();
     return 0;
 }
+
+// ------------------------------------------
+// 其他函数
+// ------------------------------------------
 
 // -----
 // 初始化
@@ -189,7 +305,7 @@ void renderCar(Model model, Shader shader)
     modelMatrix = glm::rotate(modelMatrix, glm::radians(-90 + car.getYaw()), glm::vec3(0.0, 1.0, 0.0));
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.004f, 0.004f, 0.004f));
     // 投影转换
-    glm::mat4 projMatrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
 
     // 应用变换矩阵
     setTransMatrix(shader, viewMatrix, modelMatrix, projMatrix);
@@ -204,12 +320,29 @@ void renderRaceTrack(Model model, Shader shader)
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     // 投影转换
-    glm::mat4 projMatrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
 
     // 应用变换矩阵
     setTransMatrix(shader, viewMatrix, modelMatrix, projMatrix);
 
     model.Draw(shader);
+}
+
+void renderSkyBox(Shader shader)
+{
+    // viewMatrix 通过构造，移除相机的移动
+    glm::mat4 viewMatrix = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+    // 投影
+    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
+
+    shader.setMat4("view", viewMatrix);
+    shader.setMat4("projection", projMatrix);
+
+    glBindVertexArray(skyboxVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
 }
 
 void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix)
@@ -250,7 +383,7 @@ void processInput(GLFWwindow* window)
         camera.ProcessKeyboard(DOWN, deltaTime);
 
     // 车车移动
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) 
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         car.ProcessKeyboard(CAR_FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         car.ProcessKeyboard(CAR_BACKWARD, deltaTime);
@@ -258,7 +391,6 @@ void processInput(GLFWwindow* window)
         car.ProcessKeyboard(CAR_LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         car.ProcessKeyboard(CAR_RIGHT, deltaTime);
-
 }
 // -------
 // 鼠标移动
@@ -293,4 +425,39 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // 确保窗口匹配的新窗口尺寸
     // 宽度和高度将明显大于指定在retina屏上显示
     glViewport(0, 0, width, height);
+}
+
+// loads a cubemap texture from 6 individual texture faces
+// order:
+// +X (right)
+// -X (left)
+// +Y (top)
+// -Y (bottom)
+// +Z (front)
+// -Z (back)
+// -------------------------------------------------------
+unsigned int loadCubemap(vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++) {
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        } else {
+            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }

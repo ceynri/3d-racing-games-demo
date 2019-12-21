@@ -27,8 +27,8 @@ public:
     float TurningSpeed;
 
     Car(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f))
-        : MovementSpeed(5.0f)
-        , TurningSpeed(50.0f)
+        : MovementSpeed(20.0f)
+        , TurningSpeed(80.0f)
         , Yaw(0.0f)
     {
         Position = position;

@@ -20,10 +20,10 @@ enum Camera_Movement {
 // 默认值
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
-const float SPEED = 5.0f;
+const float SPEED = 20.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
-
+const float STADIA = 1000.0f;
 // 抽象相机类
 // 处理输入和计算相应的欧拉角、向量和矩阵以用于OpenGL
 class Camera {
@@ -82,6 +82,12 @@ public:
     glm::mat4 GetViewMatrix()
     {
         return glm::lookAt(Position, Position + Front, Up);
+    }
+
+    // 计算投影矩阵
+    glm::mat4 GetProjMatrix(float aspect)
+    {
+        return glm::perspective(glm::radians(Zoom), aspect, 0.1f, STADIA);
     }
 
     // 接受键盘输入
