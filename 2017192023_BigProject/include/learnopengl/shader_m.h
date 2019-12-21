@@ -16,7 +16,7 @@ public:
     // ------------------------------------------------------------------------
     Shader(const char* vertexPath, const char* fragmentPath)
     {
-        // 1. 从filePath检索顶点/片段的源代码
+        // 1. 从filePath检索顶点/片元的源代码
         std::string vertexCode;
         std::string fragmentCode;
         std::ifstream vShaderFile;

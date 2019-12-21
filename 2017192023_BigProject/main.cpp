@@ -18,12 +18,14 @@
 #pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "assimp.lib")
 
-// -------------------------------
+// ------------------------------------------
 // 函数声明
-// -------------------------------
+// ------------------------------------------
 
 GLFWwindow* windowInit();
 bool init();
+void skyboxInit();
+
 void setDeltaTime();
 
 void renderLight(Shader shader);
@@ -40,13 +42,17 @@ void processInput(GLFWwindow* window);
 
 unsigned int loadCubemap(vector<std::string> faces);
 
-// -------------------------------
+// ------------------------------------------
 // 全局变量
-// -------------------------------
+// ------------------------------------------
 
 // 窗口尺寸
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
+
+// 渲染阴影时的窗口分辨率（会影响阴影的锯齿边情况）
+const unsigned int SHADOW_WIDTH = 10240;
+const unsigned int SHADOW_HEIGHT = 10240;
 
 // 汽车的一些属性
 Car car(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -58,6 +64,14 @@ Camera camera(glm::vec3(0.0f, 50.0f, 0.0f));
 unsigned int skyboxVAO, skyboxVBO;
 unsigned int cubemapTexture;
 
+// 光照相关属性
+glm::vec3 lightPos(-1.0f, 1.0f, -1.0f);
+glm::vec3 lightDirection = glm::normalize(lightPos);
+glm::mat4 lightSpaceMatrix;
+
+// 深度Map的ID
+unsigned int depthMap;
+
 // 将鼠标设置在屏幕中心
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
@@ -67,7 +81,7 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// 天空盒数据
+// 天空盒顶点数据
 const float skyboxVertices[] = {
     // positions
     -1.0f, 1.0f, -1.0f,
@@ -113,6 +127,7 @@ const float skyboxVertices[] = {
     1.0f, -1.0f, 1.0f
 };
 
+// 天空盒的面数据
 const vector<std::string> faces{
     FileSystem::getPath("asset/texture/skybox/right.tga"),
     FileSystem::getPath("asset/texture/skybox/left.tga"),
@@ -134,6 +149,10 @@ const vector<std::string> faces{
 
 int main()
 {
+    // ------------------------------
+    // 初始化
+    // ------------------------------
+
     GLFWwindow* window = windowInit();
     bool isInit = init();
     // 一些初始化
@@ -141,12 +160,18 @@ int main()
         return -1;
     }
 
+    // ------------------------------
     // 构建和编译着色器
-    Shader shader("shader/light.vs", "shader/light.fs");
-    Shader simpleShader("shader/model_loading.vs", "shader/model_loading.fs");
+    // ------------------------------
+
+    Shader shader("shader/shadow_mapping.vs", "shader/shadow_mapping.fs");
+    Shader simpleDepthShader("shader/shadow_mapping_depth.vs", "shader/shadow_mapping_depth.fs");
     Shader skyboxShader("shader/skybox.vs", "shader/skybox.fs");
 
-    // 加载模型
+    // ------------------------------
+    // 模型加载
+    // ------------------------------
+
     // Model model(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
     // Model model(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
     // Model model(FileSystem::getPath("asset/model/obj/simple-car/Car.obj"));
@@ -158,31 +183,60 @@ int main()
     // 赛道模型
     Model raceTrack(FileSystem::getPath("asset/model/obj/race-track/race-track.obj"));
 
-    // -----------
+    // ------------------------------
+    // 深度Map的FBO配置
+    // ------------------------------
+
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+    // 创建深度纹理
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    // 把生成的深度纹理作为帧缓冲的深度缓冲
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // ---------------------------------
     // 天空盒的配置
+    // ---------------------------------
 
-    // skybox VAO
-    glGenVertexArrays(1, &skyboxVAO);
-    glGenBuffers(1, &skyboxVBO);
-    glBindVertexArray(skyboxVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    skyboxInit();
 
-    cubemapTexture = loadCubemap(faces);
+    // ---------------------------------
+    // shader 配置
+    // ---------------------------------
+
+    shader.use();
+    shader.setInt("diffuseTexture", 0);
+    shader.setInt("shadowMap", 15);
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
 
-    // 结束天空盒配置
-    // ------------
-
-    // -------
+    // ---------------------------------
     // 循环渲染
+    // ---------------------------------
+
     while (!glfwWindowShouldClose(window)) {
         // 计算一帧的时间长度以便于使帧绘制速度均匀
         setDeltaTime();
+
+        // 随着时间改变光源位置
+        // lightPos.x = sin(glfwGetTime()) * 1.0f;
+        // lightPos.z = cos(glfwGetTime()) * 2.0f;
+        // // lightPos.y = 5.0 + cos(glfwGetTime()) * 1.0f;
+
+        // lightDirection = glm::normalize(lightPos);
 
         // 监听按键
         processInput(window);
@@ -191,17 +245,50 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 设置uniform变量之前先应用shader
+        // ---------------------------------
+        // 渲染获得场景的深度信息
+        // ---------------------------------
+
+        float near_plane = -200.0f, far_plane = 200.0f;
+        glm::mat4 lightProjection = glm::ortho(
+            -200.0f, 200.0f,
+            -200.0f, 200.0f,
+            near_plane, far_plane);
+        glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        lightSpaceMatrix = lightProjection * lightView;
+
+        // 从光源角度渲染整个场景
+        simpleDepthShader.use();
+        simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+        // 改变视口大小以便于进行深度的渲染
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        // 使用深度shader渲染生成场景
+        glClear(GL_DEPTH_BUFFER_BIT);
+        renderCar(model, simpleDepthShader);
+        renderRaceTrack(raceTrack, simpleDepthShader);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // 复原视口
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // ---------------------------------
+        // 模型渲染
+        // ---------------------------------
+
         shader.use();
 
         // 设置光照相关属性
         renderLight(shader);
+
         // 使用shader渲染car
         renderCar(model, shader);
 
         // 渲染赛道
-        simpleShader.use();
-        renderRaceTrack(raceTrack, simpleShader);
+        renderRaceTrack(raceTrack, shader);
 
         // --------------
         // 最后再渲染天空盒
@@ -279,22 +366,47 @@ bool init()
     return true;
 }
 
+void skyboxInit()
+{
+    // skybox VAO
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    // 纹理加载
+    cubemapTexture = loadCubemap(faces);
+}
+
 // 设置光照相关属性
 void renderLight(Shader shader)
 {
-    // 方向和位置
-    shader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
+
     shader.setVec3("viewPos", camera.Position);
+    // shader.setVec3("lightPos", lightPos);
+    shader.setVec3("lightDirection", lightDirection);
+    shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
-    // 光照属性
-    shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-    shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-    shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+    glActiveTexture(GL_TEXTURE15);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
 
-    // 材质属性
-    shader.setFloat("shininess", 32.0f);
+    // // 方向和位置
+    // shader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
+    // shader.setVec3("viewPos", camera.Position);
+
+    // // 光照属性
+    // shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+    // shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+    // shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+    // // 材质属性
+    // shader.setFloat("shininess", 32.0f);
 }
 
+// 渲染汽车
 void renderCar(Model model, Shader shader)
 {
     // 视图转换

@@ -6,8 +6,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <learnopengl/model.h>
-
 // 定义汽车移动的几个可能的选项
 enum Direction {
     CAR_FORWARD,
