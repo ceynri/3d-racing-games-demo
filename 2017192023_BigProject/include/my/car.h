@@ -20,13 +20,14 @@ public:
     glm::vec3 Position;
     glm::vec3 Front;
     float Yaw;
-
+    // TODO 存储旧Yaw信息，实现漂移
+    float HistoryYaw[100];
     float MovementSpeed;
     float TurningSpeed;
 
     Car(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f))
         : MovementSpeed(20.0f)
-        , TurningSpeed(80.0f)
+        , TurningSpeed(60.0f)
         , Yaw(0.0f)
     {
         Position = position;

@@ -1,0 +1,61 @@
+newmtl front
+    Ka 0 0 0
+    Kd 0.784314 0.784314 0.784314
+    Ks 0 0 0
+    Ni 1.0
+    Ns 32
+    Tf 1 1 1
+    d 1.0
+    map_Kd texture/front.jpg
+
+newmtl back
+    Ka 0 0 0
+    Kd 0.784314 0.784314 0.784314
+    Ks 0 0 0
+    Ni 1.0
+    Ns 32
+    Tf 1 1 1
+    d 1.0
+    map_Kd texture/back.jpg
+
+newmtl left
+    Ka 0 0 0
+    Kd 0.784314 0.784314 0.784314
+    Ks 0 0 0
+    Ni 1.0
+    Ns 32
+    Tf 1 1 1
+    d 1.0
+    map_Kd texture/left.jpg
+
+newmtl right
+    Ka 0 0 0
+    Kd 0.784314 0.784314 0.784314
+    Ks 0 0 0
+    Ni 1.0
+    Ns 32
+    Tf 1 1 1
+    d 1.0
+    map_Kd texture/right.jpg
+
+newmtl top
+    Ka 0 0 0
+    Kd 0.784314 0.784314 0.784314
+    Ks 0 0 0
+    Ni 1.0
+    Ns 32
+    Tf 1 1 1
+    d 1.0
+    map_Kd texture/top.jpg
+
+newmtl bottom
+    Ka 0 0 0
+    Kd 0.784314 0.784314 0.784314
+    Ks 0 0 0
+    Ni 1.0
+    Ns 32
+    Tf 1 1 1
+    d 1.0
+    map_Kd texture/bottom.jpg
+
+# OpenGL要求所有的纹理都是4字节对齐的，即纹理的大小永远是4字节的倍数。通常这并不会出现什么问题，因为大部分纹理的宽度都为4的倍数并/或每像素使用4个字节。但是这个图片是jpg并且宽高不是4的倍数，所以出现了问题。通过将纹理解压对齐参数设为1，这样才能确保不会有对齐问题。使用这个接口glPixelStorei(GL_UNPACK_ALIGNMENT, 1); 

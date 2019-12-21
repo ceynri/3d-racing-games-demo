@@ -18,12 +18,13 @@ enum Camera_Movement {
 };
 
 // 默认值
-const float YAW = -90.0f;
+const float YAW = 0.0f;
 const float PITCH = 0.0f;
 const float SPEED = 20.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 const float STADIA = 1000.0f;
+
 // 抽象相机类
 // 处理输入和计算相应的欧拉角、向量和矩阵以用于OpenGL
 class Camera {
@@ -114,7 +115,7 @@ public:
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
-        Yaw += xoffset;
+        Yaw -= xoffset;
         Pitch += yoffset;
 
         // 限制角度以避免翻转问题
@@ -140,15 +141,23 @@ public:
             Zoom = 45.0f;
     }
 
+    void FixView(glm::vec3 position, float yaw)
+    {
+        Position = position;
+        Yaw = yaw;
+        Pitch = 0.0f;
+        updateCameraVectors();
+    }
+
 private:
     // 通过相机的欧拉角计算 Front、Right、Up 向量
     void updateCameraVectors()
     {
         // 计算新的 Front 向量
         glm::vec3 front;
-        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.x = -sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         front.y = sin(glm::radians(Pitch));
-        front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.z = -cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         Front = glm::normalize(front);
         // 重新计算 Right 和 Up 向量
         Right = glm::normalize(glm::cross(Front, WorldUp));

@@ -1,6 +1,7 @@
 # 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
 # File Created: 24.04.2016 17:28:12
 
+# 车灯 玻璃
 newmtl Standard_7
 	Ns 10.0000
 	Ni 1.5000
@@ -12,6 +13,8 @@ newmtl Standard_7
 	Kd 0.0000 0.6784 0.6235
 	Ks 0.2900 0.2900 0.2900
 	Ke 0.0000 0.0000 0.0000
+	map_Ka texture\white.jpg
+	map_Kd texture\white.jpg
 
 newmtl Standard_1
 	Ns 10.0000
@@ -27,6 +30,7 @@ newmtl Standard_1
 	map_Ka texture\tyer.jpg
 	map_Kd texture\tyer.jpg
 
+# 车壳
 newmtl Standard_2
 	Ns 8.0000
 	Ni 1.5000
@@ -38,7 +42,10 @@ newmtl Standard_2
 	Kd 0.7373 0.3451 0.0000
 	Ks 0.8300 0.8300 0.8300
 	Ke 0.0000 0.0000 0.0000
+	map_Ka texture\car.jpg
+	map_Kd texture\car.jpg
 
+# 尾翼/后视镜
 newmtl Standard_8
 	Ns 10.0000
 	Ni 1.5000
@@ -50,9 +57,10 @@ newmtl Standard_8
 	Kd 0.5880 0.5880 0.5880
 	Ks 0.0000 0.0000 0.0000
 	Ke 0.0000 0.0000 0.0000
-	map_Ka texture\default.png
-	map_Kd texture\default.png
+	map_Ka texture\body.jpg
+	map_Kd texture\body.jpg
 
+# 内部
 newmtl Standard_9
 	Ns 10.0000
 	Ni 1.5000
@@ -90,4 +98,4 @@ newmtl Standard_3
 	Ke 0.0000 0.0000 0.0000
 	map_Ka texture\logo.jpg
 	map_Kd texture\logo.jpg
-	map_d texture\default.png
+	map_d texture\logo_mask.jpg

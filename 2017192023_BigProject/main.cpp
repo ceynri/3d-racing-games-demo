@@ -12,6 +12,7 @@
 #include <learnopengl/shader_m.h>
 
 #include <my/car.h>
+#include <my/fixed_camera.h>
 
 #include <iostream>
 
@@ -28,17 +29,19 @@ void skyboxInit();
 
 void setDeltaTime();
 
-void renderLight(Shader shader);
-void renderCar(Model model, Shader shader);
-void renderRaceTrack(Model model, Shader shader);
-void renderSkyBox(Shader shader);
-
-void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix);
+// 使用“&”引用性能更好
+void renderLight(Shader& shader);
+void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader);
+void renderCar(Model& model, glm::mat4 modelMatrix, Shader& shader);
+void renderCamera(Model& model, glm::mat4 modelMatrix, Shader& shader);
+void renderRaceTrack(Model& model, Shader& shader);
+void renderSkyBox(Shader& shader);
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 unsigned int loadCubemap(vector<std::string> faces);
 
@@ -58,7 +61,10 @@ const unsigned int SHADOW_HEIGHT = 10240;
 Car car(glm::vec3(0.0f, 0.0f, 0.0f));
 
 // 相机
-Camera camera(glm::vec3(0.0f, 50.0f, 0.0f));
+glm::vec3 cameraPos(0.0f, 2.0f, 5.0f);
+Camera camera(cameraPos);
+bool isCameraFixed = false;
+FixedCamera fixedCamera(cameraPos);
 
 // 天空盒
 unsigned int skyboxVAO, skyboxVBO;
@@ -178,10 +184,13 @@ int main()
     // Model model(FileSystem::getPath("asset/model/obj/LowPolyCar/Car.obj"));
 
     // 汽车模型
-    Model model(FileSystem::getPath("asset/model/obj/Lamborghini/Lamborghini.obj"));
+    Model carModel(FileSystem::getPath("asset/model/obj/Lamborghini/Lamborghini.obj"));
 
     // 赛道模型
-    Model raceTrack(FileSystem::getPath("asset/model/obj/race-track/race-track.obj"));
+    Model raceTrackModel(FileSystem::getPath("asset/model/obj/race-track/race-track.obj"));
+
+    // 相机模型
+    Model cameraModel(FileSystem::getPath("asset/model/obj/camera-cube/camera-cube.obj"));
 
     // ------------------------------
     // 深度Map的FBO配置
@@ -240,6 +249,7 @@ int main()
 
         // 监听按键
         processInput(window);
+        glfwSetKeyCallback(window, key_callback);
 
         // 渲染背景
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -267,8 +277,8 @@ int main()
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         // 使用深度shader渲染生成场景
         glClear(GL_DEPTH_BUFFER_BIT);
-        renderCar(model, simpleDepthShader);
-        renderRaceTrack(raceTrack, simpleDepthShader);
+        renderCarAndCamera(carModel, cameraModel, simpleDepthShader);
+        renderRaceTrack(raceTrackModel, simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 复原视口
@@ -284,11 +294,26 @@ int main()
         // 设置光照相关属性
         renderLight(shader);
 
-        // 使用shader渲染car
-        renderCar(model, shader);
+        if (isCameraFixed) {
+            // 处理相机相对于车坐标系下的向量坐标转换为世界坐标系下的向量
+            float angle = glm::radians(-car.getYaw());
+            glm::mat4 rotateMatrix(
+                    cos(angle), 0.0, sin(angle), 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    -sin(angle), 0.0, cos(angle), 0.0,
+                    0.0, 0.0, 0.0, 1.0
+            );
+            glm::vec3 rotatedPosition = glm::vec3(rotateMatrix * glm::vec4(fixedCamera.getPosition(), 1.0));
+
+            camera.FixView(rotatedPosition + car.getPosition(), fixedCamera.getYaw() + car.getYaw());
+        }
+
+        // 使用shader渲染car（内包括Camera）
+        renderCarAndCamera(carModel, cameraModel, shader);
+
 
         // 渲染赛道
-        renderRaceTrack(raceTrack, shader);
+        renderRaceTrack(raceTrackModel, shader);
 
         // --------------
         // 最后再渲染天空盒
@@ -382,9 +407,8 @@ void skyboxInit()
 }
 
 // 设置光照相关属性
-void renderLight(Shader shader)
+void renderLight(Shader& shader)
 {
-
     shader.setVec3("viewPos", camera.Position);
     // shader.setVec3("lightPos", lightPos);
     shader.setVec3("lightDirection", lightDirection);
@@ -392,55 +416,74 @@ void renderLight(Shader shader)
 
     glActiveTexture(GL_TEXTURE15);
     glBindTexture(GL_TEXTURE_2D, depthMap);
-
-    // // 方向和位置
-    // shader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
-    // shader.setVec3("viewPos", camera.Position);
-
-    // // 光照属性
-    // shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
-    // shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-    // shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-
-    // // 材质属性
-    // shader.setFloat("shininess", 32.0f);
 }
 
-// 渲染汽车
-void renderCar(Model model, Shader shader)
+void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader)
 {
     // 视图转换
     glm::mat4 viewMatrix = camera.GetViewMatrix();
+    shader.setMat4("view", viewMatrix);
+    // 投影转换
+    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
+    shader.setMat4("projection", projMatrix);
+
+    // -------
+    // 层级建模
+
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     modelMatrix = glm::translate(modelMatrix, car.getPosition());
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(-90 + car.getYaw()), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getYaw()), glm::vec3(0.0, 1.0, 0.0));
+
+    // 渲染汽车
+    renderCar(carModel, modelMatrix, shader);
+
+    // 由于mat4作函数参数时为值传递，故不需要备份modelMatrix
+
+    // 渲染相机
+    renderCamera(cameraModel, modelMatrix, shader);
+}
+
+// 渲染汽车
+void renderCar(Model& model, glm::mat4 modelMatrix, Shader& shader)
+{
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(0.0, 1.0, 0.0));
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.004f, 0.004f, 0.004f));
-    // 投影转换
-    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
 
     // 应用变换矩阵
-    setTransMatrix(shader, viewMatrix, modelMatrix, projMatrix);
+    shader.setMat4("model", modelMatrix);
 
     model.Draw(shader);
 }
 
-void renderRaceTrack(Model model, Shader shader)
+void renderCamera(Model& model, glm::mat4 modelMatrix, Shader& shader)
+{
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(fixedCamera.getYaw()), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::translate(modelMatrix, cameraPos);
+    modelMatrix = glm::scale(modelMatrix, glm::vec3(0.01f, 0.01f, 0.01f));
+
+    // 应用变换矩阵
+    shader.setMat4("model", modelMatrix);
+
+    model.Draw(shader);
+}
+
+void renderRaceTrack(Model& model, Shader& shader)
 {
     // 视图转换
     glm::mat4 viewMatrix = camera.GetViewMatrix();
+    shader.setMat4("view", viewMatrix);
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
+    shader.setMat4("model", modelMatrix);
     // 投影转换
     glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
-
-    // 应用变换矩阵
-    setTransMatrix(shader, viewMatrix, modelMatrix, projMatrix);
+    shader.setMat4("projection", projMatrix);
 
     model.Draw(shader);
 }
 
-void renderSkyBox(Shader shader)
+void renderSkyBox(Shader& shader)
 {
     // viewMatrix 通过构造，移除相机的移动
     glm::mat4 viewMatrix = glm::mat4(glm::mat3(camera.GetViewMatrix()));
@@ -455,13 +498,6 @@ void renderSkyBox(Shader shader)
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
-}
-
-void setTransMatrix(Shader shader, glm::mat4 viewMatrix, glm::mat4 modelMatrix, glm::mat4 projMatrix)
-{
-    shader.setMat4("view", viewMatrix);
-    shader.setMat4("model", modelMatrix);
-    shader.setMat4("projection", projMatrix);
 }
 
 // 计算一帧的时间长度
@@ -480,47 +516,74 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    // 相机 WSAD 前后左右 Space上 左Ctrl下
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera.ProcessKeyboard(UP, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        camera.ProcessKeyboard(DOWN, deltaTime);
+    if (!isCameraFixed) {
+        // 相机 WSAD 前后左右 Space上 左Ctrl下
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            camera.ProcessKeyboard(FORWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            camera.ProcessKeyboard(BACKWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            camera.ProcessKeyboard(LEFT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            camera.ProcessKeyboard(RIGHT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+            camera.ProcessKeyboard(UP, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+            camera.ProcessKeyboard(DOWN, deltaTime);
+    } else {
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            fixedCamera.ProcessKeyboard(CAMERA_LEFT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            fixedCamera.ProcessKeyboard(CAMERA_RIGHT, deltaTime);
+    }
 
     // 车车移动
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
         car.ProcessKeyboard(CAR_FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        // 只有车车动起来的时候才可以左右旋转
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+            car.ProcessKeyboard(CAR_LEFT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+            car.ProcessKeyboard(CAR_RIGHT, deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
         car.ProcessKeyboard(CAR_BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        car.ProcessKeyboard(CAR_LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        car.ProcessKeyboard(CAR_RIGHT, deltaTime);
+        // 同上
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+            car.ProcessKeyboard(CAR_LEFT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+            car.ProcessKeyboard(CAR_RIGHT, deltaTime);
+    }
 }
+
+// 按键回调函数，使得一次按键只触发一次事件
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_C && action == GLFW_PRESS) {
+        isCameraFixed = !isCameraFixed;
+        std::cout << isCameraFixed << std::endl;
+    }
+}
+
 // -------
 // 鼠标移动
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    if (firstMouse) {
+    if (!isCameraFixed) {
+        if (firstMouse) {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos; // 坐标翻转以对应坐标系
+
         lastX = xpos;
         lastY = ypos;
-        firstMouse = false;
+
+        camera.ProcessMouseMovement(xoffset, yoffset);
     }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // 坐标翻转以对应坐标系
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // -------
@@ -539,15 +602,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-// loads a cubemap texture from 6 individual texture faces
-// order:
-// +X (right)
-// -X (left)
-// +Y (top)
-// -Y (bottom)
-// +Z (front)
-// -Z (back)
-// -------------------------------------------------------
+// 将六份纹理加载为一个cubemap纹理
 unsigned int loadCubemap(vector<std::string> faces)
 {
     unsigned int textureID;
