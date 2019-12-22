@@ -21,18 +21,21 @@ public:
     glm::vec3 Position;
     glm::vec3 Front;
     float Yaw;
-    
+
     // 存储旧Yaw信息，实现漂移
     queue<float> HistoryYaw;
     int DelayFrameNum = 20;
     float DelayYaw;
+
+    queue<glm::vec3> HistoryPosition;
+    glm::vec3 DelayPosition;
 
     float MovementSpeed;
     float TurningSpeed;
 
     Car(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f))
         : MovementSpeed(30.0f)
-        , TurningSpeed(60.0f)
+        , TurningSpeed(90.0f)
         , Yaw(0.0f)
         , DelayYaw(0.0f)
     {
@@ -59,6 +62,16 @@ public:
     {
         return Yaw - DelayYaw;
     }
+
+    float getMidValYaw()
+    {
+        return (DelayYaw + Yaw) / 2;
+    }
+
+    glm::vec3 getMidValPosition()
+    {
+        return (DelayPosition + Position) / 2.0f;
+    }    
 
     // 计算视图矩阵
     glm::mat4 GetViewMatrix(glm::vec3 cameraPosition)
@@ -90,14 +103,24 @@ public:
         DelayYaw = HistoryYaw.front();
     }
 
+    // 更新DalayYaw
+    void UpdateDelayPosition()
+    {
+        HistoryPosition.push(Position);
+        while (HistoryPosition.size() > DelayFrameNum) {
+            HistoryPosition.pop();
+        }
+        DelayPosition = HistoryPosition.front();
+    }
+
 private:
     // 计算新的 Front 向量
     void updateFront()
     {
         glm::vec3 front;
-        front.x = -sin(glm::radians(Yaw));
+        front.x = -sin(glm::radians(getMidValYaw()));
         front.y = 0.0f;
-        front.z = -cos(glm::radians(Yaw));
+        front.z = -cos(glm::radians(getMidValYaw()));
         Front = glm::normalize(front);
     }
 };

@@ -25,9 +25,12 @@
 
 GLFWwindow* windowInit();
 bool init();
+void depthMapFBOInit();
 void skyboxInit();
 
 void setDeltaTime();
+void changeLightPosAsTime();
+void updateFixedCamera();
 
 // 使用“&”引用性能更好
 void renderLight(Shader& shader);
@@ -58,18 +61,20 @@ const unsigned int SCR_HEIGHT = 720;
 const unsigned int SHADOW_WIDTH = 1024 * 10;
 const unsigned int SHADOW_HEIGHT = 1024 * 10;
 
-// 汽车的一些属性
+// 是否为线框图模式
+bool isPolygonMode = false;
+
+// 世界坐标系Y轴单位向量
+glm::vec3 WORLD_UP(0.0f, 1.0f, 0.0f);
+
+// 汽车
 Car car(glm::vec3(0.0f, 0.05f, 0.0f));
 
 // 相机
 glm::vec3 cameraPos(0.0f, 2.0f, 5.0f);
 Camera camera(cameraPos);
-bool isCameraFixed = false;
 FixedCamera fixedCamera(cameraPos);
-
-// 天空盒
-unsigned int skyboxVAO, skyboxVBO;
-unsigned int cubemapTexture;
+bool isCameraFixed = false;
 
 // 光照相关属性
 glm::vec3 lightPos(-1.0f, 1.0f, -1.0f);
@@ -78,6 +83,7 @@ glm::mat4 lightSpaceMatrix;
 
 // 深度Map的ID
 unsigned int depthMap;
+unsigned int depthMapFBO;
 
 // 将鼠标设置在屏幕中心
 float lastX = SCR_WIDTH / 2.0f;
@@ -87,6 +93,10 @@ bool firstMouse = true;
 // timing 用来平衡不同电脑渲染水平所产生的速度变化
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+// 天空盒
+unsigned int cubemapTexture;
+unsigned int skyboxVAO, skyboxVBO;
 
 // 天空盒顶点数据
 const float skyboxVertices[] = {
@@ -142,12 +152,6 @@ const vector<std::string> faces{
     FileSystem::getPath("asset/texture/skybox/bottom.tga"),
     FileSystem::getPath("asset/texture/skybox/front.tga"),
     FileSystem::getPath("asset/texture/skybox/back.tga")
-    // FileSystem::getPath("asset/texture/skybox2/right.jpg"),
-    // FileSystem::getPath("asset/texture/skybox2/left.jpg"),
-    // FileSystem::getPath("asset/texture/skybox2/top.jpg"),
-    // FileSystem::getPath("asset/texture/skybox2/bottom.jpg"),
-    // FileSystem::getPath("asset/texture/skybox2/front.jpg"),
-    // FileSystem::getPath("asset/texture/skybox2/back.jpg")
 };
 
 // ------------------------------------------
@@ -160,78 +164,49 @@ int main()
     // 初始化
     // ------------------------------
 
+    // 窗口初始化
     GLFWwindow* window = windowInit();
+    // OpenGL初始化
     bool isInit = init();
-    // 一些初始化
     if (window == NULL || !isInit) {
         return -1;
     }
+    // 深度Map的FBO配置
+    depthMapFBOInit();
+    // 天空盒的配置
+    skyboxInit();
 
     // ------------------------------
     // 构建和编译着色器
     // ------------------------------
 
-    Shader shader("shader/shadow_mapping.vs", "shader/shadow_mapping.fs");
+    // 为所有物体添加光照和阴影的shader
+    Shader shader("shader/light_and_shadow.vs", "shader/light_and_shadow.fs");
+    // 从太阳平行光角度生成深度信息的shader
     Shader simpleDepthShader("shader/shadow_mapping_depth.vs", "shader/shadow_mapping_depth.fs");
+    // 天空盒shader
     Shader skyboxShader("shader/skybox.vs", "shader/skybox.fs");
 
     // ------------------------------
     // 模型加载
     // ------------------------------
 
-    // Model model(FileSystem::getPath("asset/model/obj/nanosuit/nanosuit.obj"));
-    // Model model(FileSystem::getPath("asset/model/obj/roomdoor/Door_Component_BI3.obj"));
-    // Model model(FileSystem::getPath("asset/model/obj/simple-car/Car.obj"));
-    // Model model(FileSystem::getPath("asset/model/obj/LowPolyCar/Car.obj"));
-
     // 汽车模型
     Model carModel(FileSystem::getPath("asset/model/obj/Lamborghini/Lamborghini.obj"));
-
     // 相机模型
     Model cameraModel(FileSystem::getPath("asset/model/obj/camera-cube/camera-cube.obj"));
-
     // 赛道模型
     Model raceTrackModel(FileSystem::getPath("asset/model/obj/race-track/race-track.obj"));
-
     // STOP牌模型
     Model stopSignModel(FileSystem::getPath("asset/model/obj/StopSign/StopSign.obj"));
 
-    // ------------------------------
-    // 深度Map的FBO配置
-    // ------------------------------
-
-    unsigned int depthMapFBO;
-    glGenFramebuffers(1, &depthMapFBO);
-    // 创建深度纹理
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    // 把生成的深度纹理作为帧缓冲的深度缓冲
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     // ---------------------------------
-    // 天空盒的配置
-    // ---------------------------------
-
-    skyboxInit();
-
-    // ---------------------------------
-    // shader 配置
+    // shader 纹理配置
     // ---------------------------------
 
     shader.use();
     shader.setInt("diffuseTexture", 0);
-    shader.setInt("shadowMap", 15);
+    shader.setInt("shadowMap", 15); // 这里的15是指"GL_TEXTURE15"，需要与后面的对应
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
@@ -245,15 +220,11 @@ int main()
         setDeltaTime();
 
         // 随着时间改变光源位置
-        // float freq = 0.1;
-        // lightPos.x = 1.0 + cos(glfwGetTime() * freq) * -0.5f;
-        // lightPos.z = -1.0 + sin(glfwGetTime() * freq) * 0.5f;
-        // lightPos.y = 1.0 + cos(glfwGetTime() * freq) * 0.5f;
-
-        // lightDirection = glm::normalize(lightPos);
+        // changeLightPosAsTime();
 
         // 监听按键
         processInput(window);
+        // 回调监听按键（一个按键只会触发一次事件）
         glfwSetKeyCallback(window, key_callback);
 
         // 渲染背景
@@ -269,7 +240,7 @@ int main()
             -200.0f, 200.0f,
             -200.0f, 200.0f,
             -200.0f, 200.0f);
-        glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), WORLD_UP);
         lightSpaceMatrix = lightProjection * lightView;
 
         // 从光源角度渲染整个场景
@@ -300,21 +271,12 @@ int main()
         // 设置光照相关属性
         renderLight(shader);
 
+        car.UpdateDelayYaw();
+        car.UpdateDelayPosition();
+
         // 切换为相机固定时，需要每次帧修改相机状态
         if (isCameraFixed) {
-            car.UpdateDelayYaw();
-            camera.ZoomRecover();
-
-            // 处理相机相对于车坐标系下的向量坐标转换为世界坐标系下的向量
-            float angle = glm::radians(-car.getDelayYaw());
-            glm::mat4 rotateMatrix(
-                cos(angle), 0.0, sin(angle), 0.0,
-                0.0, 1.0, 0.0, 0.0,
-                -sin(angle), 0.0, cos(angle), 0.0,
-                0.0, 0.0, 0.0, 1.0);
-            glm::vec3 rotatedPosition = glm::vec3(rotateMatrix * glm::vec4(fixedCamera.getPosition(), 1.0));
-
-            camera.FixView(rotatedPosition + car.getPosition(), fixedCamera.getYaw() + car.getDelayYaw());
+            updateFixedCamera();
         }
 
         // 使用shader渲染car和Camera（层级模型）
@@ -352,8 +314,11 @@ int main()
 // 其他函数
 // ------------------------------------------
 
-// -----
+
+// ---------------------------------
 // 初始化
+// ---------------------------------
+
 GLFWwindow* windowInit()
 {
     // ---------
@@ -396,10 +361,28 @@ bool init()
     // 配置全局openGL状态
     glEnable(GL_DEPTH_TEST);
 
-    // 画线框图
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
     return true;
+}
+
+void depthMapFBOInit()
+{
+    glGenFramebuffers(1, &depthMapFBO);
+    // 创建深度纹理
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    // 把生成的深度纹理作为帧缓冲的深度缓冲
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void skyboxInit()
@@ -416,6 +399,52 @@ void skyboxInit()
     // 纹理加载
     cubemapTexture = loadCubemap(faces);
 }
+
+// ---------------------------------
+// 时间相关函数
+// ---------------------------------
+
+// 计算一帧的时间长度
+void setDeltaTime()
+{
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+}
+
+void changeLightPosAsTime()
+{
+    float freq = 0.1;
+    lightPos.x = 1.0 + cos(glfwGetTime() * freq) * -0.5f;
+    lightPos.z = -1.0 + sin(glfwGetTime() * freq) * 0.5f;
+    lightPos.y = 1.0 + cos(glfwGetTime() * freq) * 0.5f;
+    lightDirection = glm::normalize(lightPos);
+}
+
+// ---------------------------------
+// 相机位置更新
+// ---------------------------------
+
+void updateFixedCamera()
+{
+    // 自动逐渐复原Zoom为默认值
+    camera.ZoomRecover();
+
+    // 处理相机相对于车坐标系下的向量坐标转换为世界坐标系下的向量
+    float angle = glm::radians(-car.getMidValYaw());
+    glm::mat4 rotateMatrix(
+        cos(angle), 0.0, sin(angle), 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        -sin(angle), 0.0, cos(angle), 0.0,
+        0.0, 0.0, 0.0, 1.0);
+    glm::vec3 rotatedPosition = glm::vec3(rotateMatrix * glm::vec4(fixedCamera.getPosition(), 1.0));
+
+    camera.FixView(rotatedPosition + car.getMidValPosition(), fixedCamera.getYaw() + car.getMidValYaw());
+}
+
+// ---------------------------------
+// 渲染函数
+// ---------------------------------
 
 // 设置光照相关属性
 void renderLight(Shader& shader)
@@ -443,8 +472,8 @@ void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader)
 
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::translate(modelMatrix, car.getPosition());
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getDelayYaw()), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::translate(modelMatrix, car.getMidValPosition());
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getDelayYaw() / 2), WORLD_UP);
 
     // 渲染汽车
     renderCar(carModel, modelMatrix, shader);
@@ -458,9 +487,9 @@ void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader)
 // 渲染汽车
 void renderCar(Model& model, glm::mat4 modelMatrix, Shader& shader)
 {
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getYawDif()), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getYaw() - car.getDelayYaw() / 2), WORLD_UP);
     // 抵消模型原本自带的旋转
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), WORLD_UP);
     // 调整模型大小
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.004f, 0.004f, 0.004f));
 
@@ -472,7 +501,7 @@ void renderCar(Model& model, glm::mat4 modelMatrix, Shader& shader)
 
 void renderCamera(Model& model, glm::mat4 modelMatrix, Shader& shader)
 {
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(fixedCamera.getYaw()), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(fixedCamera.getYaw() + car.getYaw() / 2), WORLD_UP);
     modelMatrix = glm::translate(modelMatrix, cameraPos);
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.01f, 0.01f, 0.01f));
 
@@ -490,7 +519,7 @@ void renderStopSign(Model& model, Shader& shader)
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     modelMatrix = glm::translate(modelMatrix, glm::vec3(3.0f, 1.5f, -4.0f));
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(-120.0f), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(-120.0f), WORLD_UP);
     // modelMatrix = glm::scale(modelMatrix, glm::vec3(0.01f, 0.01f, 0.01f));
     shader.setMat4("model", modelMatrix);
     // 投影转换
@@ -532,16 +561,10 @@ void renderSkyBox(Shader& shader)
     glBindVertexArray(0);
 }
 
-// 计算一帧的时间长度
-void setDeltaTime()
-{
-    float currentFrame = glfwGetTime();
-    deltaTime = currentFrame - lastFrame;
-    lastFrame = currentFrame;
-}
+// ---------------------------------
+// 键盘/鼠标监听
+// ---------------------------------
 
-// -------
-// 监听按键
 void processInput(GLFWwindow* window)
 {
     // esc退出
@@ -572,19 +595,19 @@ void processInput(GLFWwindow* window)
     // 车车移动
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
         car.ProcessKeyboard(CAR_FORWARD, deltaTime);
-        
+
         // 只有车车动起来的时候才可以左右旋转
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
             car.ProcessKeyboard(CAR_LEFT, deltaTime);
         if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
             car.ProcessKeyboard(CAR_RIGHT, deltaTime);
-        
+
         if (isCameraFixed)
             camera.ZoomOut();
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
         car.ProcessKeyboard(CAR_BACKWARD, deltaTime);
-        
+
         // 同上
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
             car.ProcessKeyboard(CAR_LEFT, deltaTime);
@@ -601,12 +624,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
     if (key == GLFW_KEY_C && action == GLFW_PRESS) {
         isCameraFixed = !isCameraFixed;
-        string info = "[Camera]" + isCameraFixed ? "切换为固定视角" : "切换为自由视角";
-        std::cout << info << std::endl;
+        string info = isCameraFixed ? "切换为固定视角" : "切换为自由视角";
+        std::cout << "[CAMERA]" << info << std::endl;
+    }
+    if (key == GLFW_KEY_X && action == GLFW_PRESS) {
+        isPolygonMode = !isPolygonMode;
+        if (isPolygonMode) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        string info = isPolygonMode ? "切换为线框图渲染模式" : "切换为正常渲染模式";
+        std::cout << "[POLYGON_MODE]" << info << std::endl;
     }
 }
 
-// -------
 // 鼠标移动
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -627,21 +659,27 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
-// -------
 // 鼠标滚轮
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
 }
 
-// ----------
-// 改变窗口大小
+// ---------------------------------
+// 窗口相关函数
+// ---------------------------------
+
+// 改变窗口大小的回调函数
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // 确保窗口匹配的新窗口尺寸
     // 宽度和高度将明显大于指定在retina屏上显示
     glViewport(0, 0, width, height);
 }
+
+// ---------------------------------
+// 加载相关函数
+// ---------------------------------
 
 // 将六份纹理加载为一个cubemap纹理
 unsigned int loadCubemap(vector<std::string> faces)

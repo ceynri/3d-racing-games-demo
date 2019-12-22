@@ -1,3 +1,5 @@
+// Refer to the learnopengl library
+
 #ifndef MODEL_H
 #define MODEL_H
 
