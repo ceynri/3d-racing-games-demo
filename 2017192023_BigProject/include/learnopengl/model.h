@@ -106,10 +106,14 @@ private:
             vector.z = mesh->mVertices[i].z;
             vertex.Position = vector;
             // 法线
-            vector.x = mesh->mNormals[i].x;
-            vector.y = mesh->mNormals[i].y;
-            vector.z = mesh->mNormals[i].z;
-            vertex.Normal = vector;
+            if (mesh->mNormals) {
+                vector.x = mesh->mNormals[i].x;
+                vector.y = mesh->mNormals[i].y;
+                vector.z = mesh->mNormals[i].z;
+                vertex.Normal = vector;
+            } else {
+                vertex.Normal = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
             // 纹理坐标
             if (mesh->mTextureCoords[0]) // 网格是否有纹理坐标？
             {

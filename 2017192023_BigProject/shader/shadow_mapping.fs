@@ -28,7 +28,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     
     // 计算偏差(基于深度图的分辨率和斜率)
     vec3 normal = normalize(fs_in.Normal);
-    float bias = max(0.001 * (1.0 - dot(normal, lightDirection)), 0.0001);
+    float bias = max(0.001 * (1.0 - dot(normal, lightDirection)), 0.00001);
     
     // 检测当前frag是否在阴影中
     // float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
@@ -55,14 +55,14 @@ void main()
 {
     vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
     vec3 normal = normalize(fs_in.Normal);
-    vec3 lightColor = vec3(1.0);
+    vec3 lightColor = vec3(0.8);
 
     // ambient 环境光
     vec3 ambient = 0.3 * color;
     
     // diffuse 漫反射
     float diff = max(dot(lightDirection, normal), 0.0);
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = diff * color;  // 贴图颜色越深，漫反射越弱
     
     // specular 镜面反射
     vec3 viewDir = normalize(viewPos - fs_in.FragPos);

@@ -34,6 +34,7 @@ void renderLight(Shader& shader);
 void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader);
 void renderCar(Model& model, glm::mat4 modelMatrix, Shader& shader);
 void renderCamera(Model& model, glm::mat4 modelMatrix, Shader& shader);
+void renderStopSign(Model& model, Shader& shader);
 void renderRaceTrack(Model& model, Shader& shader);
 void renderSkyBox(Shader& shader);
 
@@ -54,11 +55,11 @@ const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
 // 渲染阴影时的窗口分辨率（会影响阴影的锯齿边情况）
-const unsigned int SHADOW_WIDTH = 10240;
-const unsigned int SHADOW_HEIGHT = 10240;
+const unsigned int SHADOW_WIDTH = 1024 * 10;
+const unsigned int SHADOW_HEIGHT = 1024 * 10;
 
 // 汽车的一些属性
-Car car(glm::vec3(0.0f, 0.0f, 0.0f));
+Car car(glm::vec3(0.0f, 0.05f, 0.0f));
 
 // 相机
 glm::vec3 cameraPos(0.0f, 2.0f, 5.0f);
@@ -186,11 +187,14 @@ int main()
     // 汽车模型
     Model carModel(FileSystem::getPath("asset/model/obj/Lamborghini/Lamborghini.obj"));
 
+    // 相机模型
+    Model cameraModel(FileSystem::getPath("asset/model/obj/camera-cube/camera-cube.obj"));
+
     // 赛道模型
     Model raceTrackModel(FileSystem::getPath("asset/model/obj/race-track/race-track.obj"));
 
-    // 相机模型
-    Model cameraModel(FileSystem::getPath("asset/model/obj/camera-cube/camera-cube.obj"));
+    // STOP牌模型
+    Model stopSignModel(FileSystem::getPath("asset/model/obj/StopSign/StopSign.obj"));
 
     // ------------------------------
     // 深度Map的FBO配置
@@ -241,9 +245,10 @@ int main()
         setDeltaTime();
 
         // 随着时间改变光源位置
-        // lightPos.x = sin(glfwGetTime()) * 1.0f;
-        // lightPos.z = cos(glfwGetTime()) * 2.0f;
-        // // lightPos.y = 5.0 + cos(glfwGetTime()) * 1.0f;
+        // float freq = 0.1;
+        // lightPos.x = 1.0 + cos(glfwGetTime() * freq) * -0.5f;
+        // lightPos.z = -1.0 + sin(glfwGetTime() * freq) * 0.5f;
+        // lightPos.y = 1.0 + cos(glfwGetTime() * freq) * 0.5f;
 
         // lightDirection = glm::normalize(lightPos);
 
@@ -259,11 +264,11 @@ int main()
         // 渲染获得场景的深度信息
         // ---------------------------------
 
-        float near_plane = -200.0f, far_plane = 200.0f;
+        // 定义光源视见体，即阴影生成范围的正交投影矩阵
         glm::mat4 lightProjection = glm::ortho(
             -200.0f, 200.0f,
             -200.0f, 200.0f,
-            near_plane, far_plane);
+            -200.0f, 200.0f);
         glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
 
@@ -279,6 +284,7 @@ int main()
         glClear(GL_DEPTH_BUFFER_BIT);
         renderCarAndCamera(carModel, cameraModel, simpleDepthShader);
         renderRaceTrack(raceTrackModel, simpleDepthShader);
+        renderStopSign(stopSignModel, simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 复原视口
@@ -294,23 +300,28 @@ int main()
         // 设置光照相关属性
         renderLight(shader);
 
+        // 切换为相机固定时，需要每次帧修改相机状态
         if (isCameraFixed) {
+            car.UpdateDelayYaw();
+            camera.ZoomRecover();
+
             // 处理相机相对于车坐标系下的向量坐标转换为世界坐标系下的向量
-            float angle = glm::radians(-car.getYaw());
+            float angle = glm::radians(-car.getDelayYaw());
             glm::mat4 rotateMatrix(
-                    cos(angle), 0.0, sin(angle), 0.0,
-                    0.0, 1.0, 0.0, 0.0,
-                    -sin(angle), 0.0, cos(angle), 0.0,
-                    0.0, 0.0, 0.0, 1.0
-            );
+                cos(angle), 0.0, sin(angle), 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                -sin(angle), 0.0, cos(angle), 0.0,
+                0.0, 0.0, 0.0, 1.0);
             glm::vec3 rotatedPosition = glm::vec3(rotateMatrix * glm::vec4(fixedCamera.getPosition(), 1.0));
 
-            camera.FixView(rotatedPosition + car.getPosition(), fixedCamera.getYaw() + car.getYaw());
+            camera.FixView(rotatedPosition + car.getPosition(), fixedCamera.getYaw() + car.getDelayYaw());
         }
 
-        // 使用shader渲染car（内包括Camera）
+        // 使用shader渲染car和Camera（层级模型）
         renderCarAndCamera(carModel, cameraModel, shader);
 
+        // 渲染Stop牌
+        renderStopSign(stopSignModel, shader);
 
         // 渲染赛道
         renderRaceTrack(raceTrackModel, shader);
@@ -433,7 +444,7 @@ void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader)
     // 模型转换
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     modelMatrix = glm::translate(modelMatrix, car.getPosition());
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getYaw()), glm::vec3(0.0, 1.0, 0.0));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getDelayYaw()), glm::vec3(0.0, 1.0, 0.0));
 
     // 渲染汽车
     renderCar(carModel, modelMatrix, shader);
@@ -447,7 +458,10 @@ void renderCarAndCamera(Model& carModel, Model& cameraModel, Shader& shader)
 // 渲染汽车
 void renderCar(Model& model, glm::mat4 modelMatrix, Shader& shader)
 {
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(car.getYawDif()), glm::vec3(0.0, 1.0, 0.0));
+    // 抵消模型原本自带的旋转
     modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(0.0, 1.0, 0.0));
+    // 调整模型大小
     modelMatrix = glm::scale(modelMatrix, glm::vec3(0.004f, 0.004f, 0.004f));
 
     // 应用变换矩阵
@@ -464,6 +478,24 @@ void renderCamera(Model& model, glm::mat4 modelMatrix, Shader& shader)
 
     // 应用变换矩阵
     shader.setMat4("model", modelMatrix);
+
+    model.Draw(shader);
+}
+
+void renderStopSign(Model& model, Shader& shader)
+{
+    // 视图转换
+    glm::mat4 viewMatrix = camera.GetViewMatrix();
+    shader.setMat4("view", viewMatrix);
+    // 模型转换
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    modelMatrix = glm::translate(modelMatrix, glm::vec3(3.0f, 1.5f, -4.0f));
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(-120.0f), glm::vec3(0.0, 1.0, 0.0));
+    // modelMatrix = glm::scale(modelMatrix, glm::vec3(0.01f, 0.01f, 0.01f));
+    shader.setMat4("model", modelMatrix);
+    // 投影转换
+    glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
+    shader.setMat4("projection", projMatrix);
 
     model.Draw(shader);
 }
@@ -540,19 +572,27 @@ void processInput(GLFWwindow* window)
     // 车车移动
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
         car.ProcessKeyboard(CAR_FORWARD, deltaTime);
+        
         // 只有车车动起来的时候才可以左右旋转
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
             car.ProcessKeyboard(CAR_LEFT, deltaTime);
         if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
             car.ProcessKeyboard(CAR_RIGHT, deltaTime);
+        
+        if (isCameraFixed)
+            camera.ZoomOut();
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
         car.ProcessKeyboard(CAR_BACKWARD, deltaTime);
+        
         // 同上
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
             car.ProcessKeyboard(CAR_LEFT, deltaTime);
         if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
             car.ProcessKeyboard(CAR_RIGHT, deltaTime);
+
+        if (isCameraFixed)
+            camera.ZoomIn();
     }
 }
 
@@ -561,7 +601,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
     if (key == GLFW_KEY_C && action == GLFW_PRESS) {
         isCameraFixed = !isCameraFixed;
-        std::cout << isCameraFixed << std::endl;
+        string info = "[Camera]" + isCameraFixed ? "切换为固定视角" : "切换为自由视角";
+        std::cout << info << std::endl;
     }
 }
 
