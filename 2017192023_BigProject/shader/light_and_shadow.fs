@@ -26,7 +26,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     // 从光的角度得到当前片元的深度
     float currentDepth = projCoords.z;
     
-    // 计算偏差(基于深度图的分辨率和斜率)
+    // 计算偏差
     vec3 normal = normalize(fs_in.Normal);
     float bias = max(0.001 * (1.0 - dot(normal, lightDirection)), 0.00001);
     
@@ -67,6 +67,7 @@ void main()
     // specular 镜面反射
     vec3 viewDir = normalize(viewPos - fs_in.FragPos);
     vec3 reflectDir = reflect(-lightDirection, normal);
+    
     float spec = 0.0;
     vec3 halfwayDir = normalize(lightDirection + viewDir);
     spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);

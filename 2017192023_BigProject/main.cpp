@@ -44,7 +44,7 @@ void renderSkyBox(Shader& shader);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window);
+void handleKeyInput(GLFWwindow* window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 unsigned int loadCubemap(vector<std::string> faces);
@@ -183,7 +183,7 @@ int main()
     // 为所有物体添加光照和阴影的shader
     Shader shader("shader/light_and_shadow.vs", "shader/light_and_shadow.fs");
     // 从太阳平行光角度生成深度信息的shader
-    Shader simpleDepthShader("shader/shadow_mapping_depth.vs", "shader/shadow_mapping_depth.fs");
+    Shader depthShader("shader/shadow_mapping_depth.vs", "shader/shadow_mapping_depth.fs");
     // 天空盒shader
     Shader skyboxShader("shader/skybox.vs", "shader/skybox.fs");
 
@@ -223,9 +223,7 @@ int main()
         // changeLightPosAsTime();
 
         // 监听按键
-        processInput(window);
-        // 回调监听按键（一个按键只会触发一次事件）
-        glfwSetKeyCallback(window, key_callback);
+        handleKeyInput(window);
 
         // 渲染背景
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -240,12 +238,13 @@ int main()
             -200.0f, 200.0f,
             -200.0f, 200.0f,
             -200.0f, 200.0f);
+        // TODO lightPos跟随相机位置进行移动，使相机周围的地方总会生成影子
         glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f), WORLD_UP);
         lightSpaceMatrix = lightProjection * lightView;
 
         // 从光源角度渲染整个场景
-        simpleDepthShader.use();
-        simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        depthShader.use();
+        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         // 改变视口大小以便于进行深度的渲染
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -253,9 +252,9 @@ int main()
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         // 使用深度shader渲染生成场景
         glClear(GL_DEPTH_BUFFER_BIT);
-        renderCarAndCamera(carModel, cameraModel, simpleDepthShader);
-        renderRaceTrack(raceTrackModel, simpleDepthShader);
-        renderStopSign(stopSignModel, simpleDepthShader);
+        renderCarAndCamera(carModel, cameraModel, depthShader);
+        renderRaceTrack(raceTrackModel, depthShader);
+        renderStopSign(stopSignModel, depthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 复原视口
@@ -291,7 +290,7 @@ int main()
         // --------------
         // 最后再渲染天空盒
 
-        // 改变深度测试，优化由深度问题导致的重绘从而出现性能问题
+        // 改变深度测试，使深度等于1.0时为无穷远
         glDepthFunc(GL_LEQUAL);
         skyboxShader.use();
         renderSkyBox(skyboxShader);
@@ -364,6 +363,7 @@ bool init()
     return true;
 }
 
+// 深度图配置
 void depthMapFBOInit()
 {
     glGenFramebuffers(1, &depthMapFBO);
@@ -385,6 +385,7 @@ void depthMapFBOInit()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+// 天空盒配置
 void skyboxInit()
 {
     // skybox VAO
@@ -520,7 +521,6 @@ void renderStopSign(Model& model, Shader& shader)
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     modelMatrix = glm::translate(modelMatrix, glm::vec3(3.0f, 1.5f, -4.0f));
     modelMatrix = glm::rotate(modelMatrix, glm::radians(-120.0f), WORLD_UP);
-    // modelMatrix = glm::scale(modelMatrix, glm::vec3(0.01f, 0.01f, 0.01f));
     shader.setMat4("model", modelMatrix);
     // 投影转换
     glm::mat4 projMatrix = camera.GetProjMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
@@ -565,7 +565,7 @@ void renderSkyBox(Shader& shader)
 // 键盘/鼠标监听
 // ---------------------------------
 
-void processInput(GLFWwindow* window)
+void handleKeyInput(GLFWwindow* window)
 {
     // esc退出
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -617,6 +617,9 @@ void processInput(GLFWwindow* window)
         if (isCameraFixed)
             camera.ZoomIn();
     }
+    
+    // 回调监听按键（一个按键只会触发一次事件）
+    glfwSetKeyCallback(window, key_callback);
 }
 
 // 按键回调函数，使得一次按键只触发一次事件

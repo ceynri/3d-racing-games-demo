@@ -27,6 +27,8 @@ public:
     int DelayFrameNum = 20;
     float DelayYaw;
 
+    // 实现汽车缓动与缓停
+    // TODO 设置一个speed属性，接收按键后根据deltatime不断增加或减小speed至阈值以实现缓动更加合适（而不是使用现在的奇怪的方法）（相机的Yaw偏移也相同）
     queue<glm::vec3> HistoryPosition;
     glm::vec3 DelayPosition;
 

@@ -5,8 +5,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <vector>
 #include <iostream>
+#include <vector>
 
 // 定义了相机运动的几个可能的选项
 enum Camera_Movement {
@@ -112,7 +112,7 @@ public:
     }
 
     // 接受鼠标移动
-    void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    void ProcessMouseMovement(float xoffset, float yoffset)
     {
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
@@ -121,12 +121,10 @@ public:
         Pitch += yoffset;
 
         // 限制角度以避免翻转问题
-        if (constrainPitch) {
-            if (Pitch > 89.0f)
-                Pitch = 89.0f;
-            if (Pitch < -89.0f)
-                Pitch = -89.0f;
-        }
+        if (Pitch > 89.0f)
+            Pitch = 89.0f;
+        if (Pitch < -89.0f)
+            Pitch = -89.0f;
 
         // 使用欧拉角更新 Front、Up、Right 向量
         updateCameraVectors();
