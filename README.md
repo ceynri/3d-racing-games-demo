@@ -1,76 +1,92 @@
 <h1 align="center">3D Racing Games Demo with OpenGL</h1>
-<p align="center">ʹ�� C++ �� OpenGL ʵ�ּ򵥵� 3D ������Ϸ</p>
+<p align="center">使用 C++ 和 OpenGL 实现简单的 3D 赛车游戏</p>
 
 <img src="https://i.loli.net/2020/01/01/PAJ5ZVzrMORbcjw.png" style="width: 100%">
 
 <br/>
 
-## ��� Introduction
+## 简介 Introduction
 
-�����ͼ��ѧ�γ̵Ĵ���ҵ���ο� [LearnOpenGL ���Ľ̳�](https://learnopengl-cn.github.io/) ��ɸ� Demo��
+计算机图形学课程的大作业，参考 [LearnOpenGL 中文教程](https://learnopengl-cn.github.io/) 完成该 Demo。
 
-���õ� LearnOpenGL ������Լ��Լ���д�Ĵ������������ע�͡�
-
-<br/>
-
-##  ʹ�÷�ʽ Usage
-
-�����г������ص�ַ����GitHub Releases �����ϣ�ֻ���ðٶ��ƣ�
-
-���ӣ�<https://pan.baidu.com/s/1DrRJSp5qA_zkWEbwiwS3IQ>
-
-��ȡ�룺nlv9
-
-ѡ�� Release �� Debug �汾����һ�����ؽ�ѹ���� `RacingGames.exe` ���г���
-
-[��ĿԴ��](https://github.com/ceynri/3d-racing-games-demo/releases) ��Ҫ�� Windows ƽ̨��ʹ�� VS 2015 �������У��޼������Ż�����
-
-�糢�����б��룬��ѡ�� x86 ѡ���Ϊ��ʹ�õĿ�Ϊ x86 �汾��
+引用的 LearnOpenGL 库代码以及自己编写的代码均做有中文注释。
 
 <br/>
 
-## ���� Control
+## 使用方式 Usage
 
-### ���̿���
+可运行程序下载地址：（GitHub Releases 传不上，只好用百度云）
 
-ȫ�ְ�����
+链接：<https://pan.baidu.com/s/1DrRJSp5qA_zkWEbwiwS3IQ>
 
-| ���� | Ч��                                 |
+提取码：nlv9
+
+选择 Release 或 Debug 版本其中一个下载解压后点击 `RacingGames.exe` 运行程序。
+
+[项目源码](https://github.com/ceynri/3d-racing-games-demo/releases) 需要在 Windows 平台下使用 VS 2015 编译运行（无兼容性优化）。
+
+如尝试自行编译，请选择 x86 选项（因为所使用的库为 x86 版本）
+
+<br/>
+
+## 效果演示 Demonstrate
+
+<div align="center">
+    <img src="https://i.loli.net/2020/01/01/5cMn91fltPwFr2s.gif" />
+</div>
+<div align="center">自由视角</div>
+
+<br/>
+
+<div align="center">
+    <img src="https://i.loli.net/2020/01/01/dQEXnaoqsLBHckm.gif" />
+</div>
+<div align="center">驾驶跑车</div>
+
+<br/>
+
+## 控制 Control
+
+### 键盘控制
+
+全局按键：
+
+| 按键 | 效果                                 |
 | ---- | ------------------------------------ |
-| ��    | ������ǰ��ʻ                         |
-| ��    | ����                                 |
-| ��    | ��ת�䣨��Ҫ���������ƶ��вŻ���Ч�� |
-| ��    | ��ת�䣨��Ҫ���������ƶ��вŻ���Ч�� |
-| Esc  | �˳���Ϸ                             |
-| C    | �л�����ӽ�Ϊ�̶��ӽ�/�����ӽ�      |
-| X    | �л���Ⱦ��ʽΪ�߿�ͼģʽ/����ģʽ    |
+| ↑    | 汽车向前行驶                         |
+| ↓    | 倒车                                 |
+| ←    | 左转弯（需要汽车处于移动中才会生效） |
+| →    | 右转弯（需要汽车处于移动中才会生效） |
+| Esc  | 退出游戏                             |
+| C    | 切换相机视角为固定视角/自由视角      |
+| X    | 切换渲染方式为线框图模式/正常模式    |
 
-�����ӽ��£�
+自由视角下：
 
-| ����   | Ч��             |
+| 按键   | 效果             |
 | ------ | ---------------- |
-| W      | ��ͷ��ǰ�ƶ�     |
-| S      | ��ͷ����ƶ�     |
-| A      | ��ͷ�����ƶ�     |
-| D      | ��ͷ�����ƶ�     |
-| Space  | ��ͷ��ֱ�����ƶ� |
-| ��Ctrl | ��ͷ��ֱ�����ƶ� |
+| W      | 镜头向前移动     |
+| S      | 镜头向后移动     |
+| A      | 镜头向左移动     |
+| D      | 镜头向右移动     |
+| Space  | 镜头竖直向上移动 |
+| 左Ctrl | 镜头竖直向下移动 |
 
-�̶��ӽ��£�
+固定视角下：
 
-| ���� | Ч��               |
+| 按键 | 效果               |
 | ---- | ------------------ |
-| A    | ��ͷ�Ƴ���������ת |
-| D    | ��ͷ�Ƴ���������ת |
+| A    | 镜头绕车身向左旋转 |
+| D    | 镜头绕车身向右旋转 |
 
 <br/>
 
-### ������
+### 鼠标控制
 
-| ����     | Ч��                         |
+| 按键     | 效果                         |
 | -------- | ---------------------------- |
-| ����ƶ� | �ӽǷ����ƶ����������ӽ��£� |
-| ������ | ��ͷ�佹                     |
+| 鼠标移动 | 视角方向移动（仅自由视角下） |
+| 鼠标滚轮 | 镜头变焦                     |
 
 <br/>
 
@@ -78,43 +94,43 @@
 
 <br/>
 
-## ��Ŀ���� Project Introduction
+## 项目介绍 Project Introduction
 
-### ��Ŀ�ṹ Project Structure
+### 项目结构 Project Structure
 
-- asset ��Ź��������Դ
-  - textures �����պе�ԭͼ
-  - models ���ģ��
-- include ������õ�ͷ�ļ�
-- lib ������õ� lib �ļ�
-- shader �����ɫ���ļ�
-
-<br/>
-
-### ʵ�ֹ��� Implement
-
-1.	obj ģ�͵Ķ�ȡ����Ⱦ��assimp �⣩
-2.	������ͼ
-3.	Blinn-Phong ����ģ��
-4.  ��ӰЧ��ʵ�֣���Ӱ��ͼ��ʽ��
-5.  ��Ӱ��Ե�Ż���PCF��
-5.	��պ�
-6.	����̶��ӽ��������ӽǵ�ʵ�����л�
-7.	�����ƶ���ת��ʵ��
-8.	ת���ӽ�ƫ���ӳ�
-9.	�����Ļ�������ͣ��Ư��Ч��
-10.	��ʻ�����Ӿ�Ч��
-11.	����-����Ĳ㼶��ģ�ṹ
+- asset 存放工程相关资源
+  - textures 存放天空盒的原图
+  - models 存放模型
+- include 存放引用的头文件
+- lib 存放引用的 lib 文件
+- shader 存放着色器文件
 
 <br/>
 
-### ���л��� Environment
+### 实现功能 Implement
 
-�� 64λ���� Win10 ϵͳ�� Visual Studio 2015 ʹ�� x86 Debug/Release �汾�������ͨ��
+1.	obj 模型的读取与渲染（assimp 库）
+2.	纹理贴图
+3.	Blinn-Phong 光照模型
+4.  阴影效果实现（阴影贴图方式）
+5.  阴影边缘优化（PCF）
+5.	天空盒
+6.	相机固定视角与自由视角的实现与切换
+7.	汽车移动与转弯实现
+8.	转弯视角偏移延迟
+9.	汽车的缓动、缓停与漂移效果
+10.	行驶加速视觉效果
+11.	赛车-相机的层级建模结构
 
 <br/>
 
-### ���ÿ� Reference Library
+### 运行环境 Environment
+
+√ 64位电脑 Win10 系统下 Visual Studio 2015 使用 x86 Debug/Release 版本编译测试通过
+
+<br/>
+
+### 引用库 Reference Library
 
 - assimp
 - glad
