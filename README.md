@@ -1,5 +1,5 @@
-<h1 style="text-align: center">3D Racing Games Demo with OpenGL</h1>
-<p style="text-align: center">使用 C++ 和 OpenGL 实现简单的 3D 赛车游戏</p>
+<h1 align="center">3D Racing Games Demo with OpenGL</h1>
+<p align="center">使用 C++ 和 OpenGL 实现简单的 3D 赛车游戏</p>
 
 <img src="https://i.loli.net/2020/01/01/PAJ5ZVzrMORbcjw.png" style="width: 100%">
 
@@ -15,9 +15,15 @@
 
 ##  使用方式 Usage
 
-选择 Debug 或 Release 版本下载解压后点击 `RacingGames.exe` 运行程序。
+可运行程序下载地址：（GitHub Releases 传不上，只好用百度云）
 
-仓库存放的源码需要在 Windows 平台下使用 VS 2015 编译运行（无兼容性优化）。
+链接：<https://pan.baidu.com/s/1DrRJSp5qA_zkWEbwiwS3IQ>
+
+提取码：nlv9
+
+选择 Release 或 Debug 版本其中一个下载解压后点击 `RacingGames.exe` 运行程序。
+
+[项目源码](https://github.com/ceynri/3d-racing-games-demo/releases) 需要在 Windows 平台下使用 VS 2015 编译运行（无兼容性优化）。
 
 <br/>
 
@@ -67,6 +73,9 @@
 <br/>
 
 ---
+
+<br/>
+
 ## 项目介绍 Project Introduction
 
 ### 项目结构 Project Structure
