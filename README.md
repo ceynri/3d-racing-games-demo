@@ -25,6 +25,8 @@
 
 [项目源码](https://github.com/ceynri/3d-racing-games-demo/releases) 需要在 Windows 平台下使用 VS 2015 编译运行（无兼容性优化）。
 
+如尝试自行编译，请选择 x86 选项（因为所使用的库为 x86 版本）
+
 <br/>
 
 ## 控制 Control
@@ -108,7 +110,7 @@
 
 ### 运行环境 Environment
 
-? 64位电脑 Win10 系统下 Visual Studio 2015 使用 x86 Debug/Release 版本编译测试通过
+√ 64位电脑 Win10 系统下 Visual Studio 2015 使用 x86 Debug/Release 版本编译测试通过
 
 <br/>
 
