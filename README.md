@@ -15,11 +15,17 @@
 
 ## 使用方式 Usage
 
-可运行程序下载地址：（GitHub Releases 传不上，只好用百度云）
+可运行程序下载地址：
 
-链接：<https://pan.baidu.com/s/1DrRJSp5qA_zkWEbwiwS3IQ>
+1. 站内下载：[Github Releases](https://github.com/ceynri/3d-racing-games-demo/releases)
+  
+    没有科学上网的同学可能不仅下面的 gif 图加载不出来，这个链接估计也下载不动，可以使用下面的百度云链接
 
-提取码：nlv9
+2. 百度云：
+
+    > 链接：<https://pan.baidu.com/s/1DrRJSp5qA_zkWEbwiwS3IQ>
+    > 
+    > 提取码：nlv9
 
 选择 Release 或 Debug 版本其中一个下载解压后点击 `RacingGames.exe` 运行程序。
 
